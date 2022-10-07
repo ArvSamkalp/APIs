@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<flow name="get-accounts-by-id" doc:id="ccb64b18-4a90-4cca-a728-fb9c7b4f90e6">
+		<db:select doc:name="flights_customers by accountID" doc:id="74f8f2aa-2078-40f1-a9c4-bd1d457343c7" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * FROM flights_customers WHERE accountID = :id]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	id: vars.id
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="2ad70ce0-a66a-4d59-94df-3fadf0a68a52">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	id: payload01.accountID as Number default 0,
+	name: payload01.name default "",
+	"type": payload01.accountType default "",
+	address: ((((payload01.street default "") ++ "," ++ (payload01.city default "")) ++ "," ++ (payload01.state default "")) ++ "," ++ (payload01.postal default "")) ++ "," ++ (payload01.country default ""),
+	air_miles: payload01.miles default 0,
+	created_at: payload01.creationDate as String default ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<sub-flow name="set-variables" doc:id="ac179fe1-c599-4bb8-a679-cab66f937498">
+		<set-variable value="#[attributes.queryParams.Name]" doc:name="name" doc:id="2e1c6eb6-15cf-401d-af6e-4a441084fbfc" variableName="accountName" />
+		<set-variable value="#[attributes.queryParams.Type]" doc:name="accountType" doc:id="e523ddaf-c7a1-48c2-bcd2-c13cd7259699" variableName="accountType" />
+	</sub-flow>
+	<flow name="AND-flow" doc:id="ef49e7ea-3a1c-47ff-bf2b-2ee39dccb07a" >
+		<flow-ref doc:name="variables" doc:id="eb65b521-5e56-4c1d-90b2-0040d6bb8b41" name="set-variables" />
+		<db:select doc:id="91aaa51c-4456-45cc-a761-69831c0bccf3" doc:name="customers by Name AND accountType" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM flights_customers WHERE name =:nm AND accountType =:tp]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	nm: vars.name,
+	tp: vars.accountType
+}]]]></db:input-parameters>
+		
+</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="11436436-afef-4b24-a47e-3f3a53462822" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	id: payload01.accountID as Number default 0,
+	name: payload01.name default "",
+	"type": payload01.accountType default "",
+	address: ((((payload01.street default "") ++ "," ++ (payload01.city default "")) ++ "," ++ (payload01.state default "")) ++ "," ++ (payload01.postal default "")) ++ "," ++ (payload01.country default ""),
+	air_miles: payload01.miles default 0,
+	created_at: payload01.creationDate as String default ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="396bb21f-4d7a-41cf-97e2-8eb361221768" message="AND flow Executed successfully"/>
+	
+</flow>
+	<flow name="OR-flow" doc:id="6f6c7bed-99c9-4d5b-936f-44e7d7807045">
+		<flow-ref doc:name="variables" doc:id="197433e4-5832-439e-b77d-42fd7e86a5fc" name="set-variables" />
+		<db:select doc:name="customers by Name OR accountType" doc:id="3f6d7593-502c-4b89-8575-93b3db99c268" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * FROM flights_customers WHERE name =:nm OR accountType =:tp]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	nm: vars.name,
+	tp: vars.accountType
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="e9c03369-4e87-430e-b8e0-1e6a4027c8a6">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	id: payload01.accountID as Number default 0,
+	name: payload01.name default "",
+	"type": payload01.accountType default "",
+	address: ((((payload01.street default "") ++ "," ++ (payload01.city default "")) ++ "," ++ (payload01.state default "")) ++ "," ++ (payload01.postal default "")) ++ "," ++ (payload01.country default ""),
+	air_miles: payload01.miles default 0,
+	created_at: payload01.creationDate as String default ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="2c2d4a17-d42d-42a0-812d-bd54d5ebf300" message="OR flow Executed successfully" />
+	</flow>
+	<flow name="condition-flow" doc:id="3f2e714e-87d8-4b6f-b2aa-0df6fef88c02" >
+		<set-variable value='#[attributes.headers.condition default "AND"]' doc:name="condition" doc:id="c7d51f65-990d-478a-a739-0b58054272fd" variableName="condition"/>
+		<choice doc:name="Choice" doc:id="02e8493a-8e6b-4b8a-aa94-811301b4a00a" >
+			<when expression='#[vars.condition == "OR"]'>
+				<flow-ref doc:name="OR" doc:id="e3526e96-8ab4-428e-b5f2-ef98b8349d22" name="OR-flow" />
+			</when>
+			<otherwise>
+				<flow-ref doc:name="AND" doc:id="6ef32158-b002-4451-bddd-4167be0f3e28" name="AND-flow" />
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="a6417167-5c84-4869-9ab5-5ebf639a7b9c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="7b9567d3-1599-4446-a950-e40f603dcb21" message="Condition flow executed successfully!!!"/>
+	</flow>
+
+</mule>
